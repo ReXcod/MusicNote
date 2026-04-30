@@ -307,7 +307,7 @@ if uploaded:
 
                 # Per-page PNG downloads
                 st.markdown("**Download sheet music:**")
-                n_dl_cols = min(len(svg_pages), 4)
+                n_dl_cols = max(1, min(len(svg_pages), 4))
                 dl_cols   = st.columns(n_dl_cols)
                 for page_idx, png in enumerate(svg_pages, 1):
                     col = dl_cols[(page_idx - 1) % n_dl_cols]
