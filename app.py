@@ -146,7 +146,7 @@ def build_musicxml(notes_list, bpm, key_str, max_notes):
 #  Render MusicXML → SVG pages via verovio
 # ─────────────────────────────────────────────────────────────
 def render_sheet_music(xml_str):
-    import verovio
+    import verovio, cairosvg
     tk = verovio.toolkit()
     tk.setOptions({
         'pageWidth':        2100,
@@ -158,7 +158,16 @@ def render_sheet_music(xml_str):
     })
     tk.loadData(xml_str)
     page_count = tk.getPageCount()
-    return [tk.renderToSVG(p) for p in range(1, page_count + 1)]
+    png_pages = []
+    for p in range(1, page_count + 1):
+        svg_str   = tk.renderToSVG(p)
+        png_bytes = cairosvg.svg2png(
+            bytestring=svg_str.encode('utf-8'),
+            background_color='white',
+            dpi=150,
+        )
+        png_pages.append(png_bytes)
+    return png_pages
 
 # ─────────────────────────────────────────────────────────────
 #  File upload
@@ -291,38 +300,24 @@ if uploaded:
                 st.error(f"Sheet music rendering failed: {sheet_err}")
                 st.info("Make sure music21 and verovio are in requirements.txt")
             else:
-                for page_idx, svg in enumerate(svg_pages, 1):
+                for page_idx, png in enumerate(svg_pages, 1):
                     if len(svg_pages) > 1:
                         st.markdown(f"**Page {page_idx} / {len(svg_pages)}**")
-                    st.markdown(
-                        f'<div style="background:white;padding:1.2rem 1rem;'
-                        f'border-radius:10px;margin-bottom:1rem;">{svg}</div>',
-                        unsafe_allow_html=True
-                    )
+                    st.image(png, use_container_width=True)
 
-                # Per-page SVG downloads + MusicXML
+                # Per-page PNG downloads
                 st.markdown("**Download sheet music:**")
-                n_dl_cols = min(len(svg_pages) + 1, 4)
+                n_dl_cols = min(len(svg_pages), 4)
                 dl_cols   = st.columns(n_dl_cols)
-                for page_idx, svg in enumerate(svg_pages, 1):
+                for page_idx, png in enumerate(svg_pages, 1):
                     col = dl_cols[(page_idx - 1) % n_dl_cols]
                     col.download_button(
-                        label=f"⬇️ SVG Page {page_idx}",
-                        data=svg.encode("utf-8"),
-                        file_name=f"sheet_music_p{page_idx}.svg",
-                        mime="image/svg+xml",
+                        label=f"⬇️ PNG Page {page_idx}",
+                        data=png,
+                        file_name=f"sheet_music_p{page_idx}.png",
+                        mime="image/png",
                     )
-                dl_cols[-1].download_button(
-                    label="⬇️ MusicXML",
-                    data=xml_str.encode("utf-8"),
-                    file_name="transcription.xml",
-                    mime="application/xml",
-                    help="Open in MuseScore (free), Sibelius, Finale, or Dorico"
-                )
-                st.caption(
-                    "💡 SVG — open in any browser and print → Save as PDF.  "
-                    "MusicXML — full editable score in MuseScore / Sibelius / Finale."
-                )
+                st.caption("💡 Open in any image viewer · Print · Share directly")
 
         # ── Piano Roll ─────────────────────────────────────────
         with tab_roll:
@@ -470,24 +465,24 @@ if uploaded:
         with dl2:
             if sheet_ok and svg_pages:
                 st.download_button(
-                    "⬇️ Sheet Music Page 1 (SVG)",
-                    data=svg_pages[0].encode("utf-8"),
-                    file_name="sheet_music_p1.svg",
-                    mime="image/svg+xml",
+                    "⬇️ Sheet Music PNG (Page 1)",
+                    data=svg_pages[0],
+                    file_name="sheet_music_p1.png",
+                    mime="image/png",
                     use_container_width=True,
                 )
-                st.caption("Open in browser → Print → Save as PDF")
+                st.caption("High-res PNG · Open in any image viewer · Print directly")
 
         with dl3:
-            if sheet_ok and xml_str:
-                st.download_button(
-                    "⬇️ MusicXML (editable score)",
-                    data=xml_str.encode("utf-8"),
-                    file_name="transcription.xml",
-                    mime="application/xml",
-                    use_container_width=True,
-                )
-                st.caption("MuseScore · Sibelius · Finale · Dorico")
+            if sheet_ok and svg_pages and len(svg_pages) > 1:
+                for i, png in enumerate(svg_pages[1:], 2):
+                    st.download_button(
+                        f"⬇️ Sheet Music PNG (Page {i})",
+                        data=png,
+                        file_name=f"sheet_music_p{i}.png",
+                        mime="image/png",
+                        use_container_width=True,
+                    )
 
 else:
     st.info("👆 Upload an audio file above to get started.")
