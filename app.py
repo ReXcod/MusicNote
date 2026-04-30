@@ -87,9 +87,12 @@ def quantize(beats):
 #  Build MusicXML from detected notes
 # ─────────────────────────────────────────────────────────────
 def build_musicxml(notes_list, bpm, key_str, max_notes):
-    from music21 import (stream, note as m21note, rest as m21rest,
-                         meter, tempo as m21tempo, key as m21key,
-                         clef as m21clef, metadata)
+    # music21 v9+: Rest lives in note module, not a separate rest module
+    from music21 import stream, note, meter, tempo, key, clef, metadata
+    m21note  = note
+    m21clef  = clef
+    m21tempo = tempo
+    m21key   = key
 
     notes_list = notes_list[:max_notes]
     s = stream.Score()
@@ -120,7 +123,7 @@ def build_musicxml(notes_list, bpm, key_str, max_notes):
         if gap > 0.12:
             q_gap = quantize(gap)
             if q_gap >= 0.0625:
-                part.append(m21rest.Rest(quarterLength=q_gap))
+                part.append(note.Rest(quarterLength=q_gap))
 
         q_dur = quantize(max(0.125, dur_beats))
         n = m21note.Note()
