@@ -148,12 +148,14 @@ def build_musicxml(notes_list, bpm, key_str, max_notes):
 def render_sheet_music(xml_str):
     import verovio
     tk = verovio.toolkit()
-    tk.setOption('pageWidth',        '2100')
-    tk.setOption('pageHeight',       '2970')
-    tk.setOption('scale',            '45')
-    tk.setOption('adjustPageHeight', '1')
-    tk.setOption('footer',           'none')
-    tk.setOption('header',           'auto')
+    tk.setOptions({
+        'pageWidth':        2100,
+        'pageHeight':       2970,
+        'scale':            45,
+        'adjustPageHeight': True,
+        'footer':           'none',
+        'header':           'auto',
+    })
     tk.loadData(xml_str)
     page_count = tk.getPageCount()
     return [tk.renderToSVG(p) for p in range(1, page_count + 1)]
